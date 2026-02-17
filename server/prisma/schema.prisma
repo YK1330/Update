@@ -1,0 +1,70 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id       String   @id
+  name     String
+  email    String   @unique
+  phone    String
+  role     String
+  password String
+  avatar   String?
+  enquiries Enquiry[] @relation("AssignedTo")
+  notifications Notification[]
+}
+
+model Course {
+  id         String   @id
+  name       String
+  department String
+  duration   String
+  fees       String
+  eligibility String
+  description String
+  syllabus   String  // JSON-encoded string (array of syllabus items)
+  seats      Int
+  image      String?
+  enquiries  Enquiry[]
+}
+
+model Enquiry {
+  id         String  @id
+  studentName String
+  email      String
+  phone      String
+  course      Course @relation(fields: [courseId], references: [id])
+  courseId    String
+  message     String
+  status      String
+  assignedTo  User?   @relation("AssignedTo", fields: [assignedToId], references: [id])
+  assignedToId String?
+  createdAt   DateTime
+  updatedAt   DateTime
+  notes        EnquiryNote[]
+  documents    String? // JSON-encoded array of document paths
+}
+
+model EnquiryNote {
+  id        String @id
+  text      String
+  author    String
+  createdAt DateTime
+  enquiry   Enquiry @relation(fields: [enquiryId], references: [id])
+  enquiryId String
+}
+
+model Notification {
+  id        String @id
+  userId    String
+  title     String
+  message   String
+  read      Boolean
+  createdAt DateTime
+  user      User?  @relation(fields: [userId], references: [id])
+}
