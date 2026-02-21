@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { COURSES, addEnquiry } from "@/lib/data";
 import { Button } from "@/components/ui/button";
@@ -15,19 +15,25 @@ export default function EnquiryForm() {
   const preselected = searchParams.get("course") || "";
   const { toast } = useToast();
 
-  const [form, setForm] = useState({
-    name: "", email: "", phone: "", courseId: preselected, message: "",
-  });
+  // Use uncontrolled inputs (refs) for responsive typing; read values on submit
+  const nameRef = useRef<HTMLInputElement | null>(null);
+  const emailRef = useRef<HTMLInputElement | null>(null);
+  const phoneRef = useRef<HTMLInputElement | null>(null);
+  const messageRef = useRef<HTMLTextAreaElement | null>(null);
+  const [courseId, setCourseId] = useState<string>(preselected);
   const [submitted, setSubmitted] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!form.name.trim()) e.name = "Name is required";
-    if (!form.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = "Valid email is required";
-    if (!form.phone.trim() || !/^\d{10}$/.test(form.phone)) e.phone = "Valid 10-digit phone is required";
-    if (!form.courseId) e.courseId = "Please select a course";
+    const name = nameRef.current?.value ?? "";
+    const email = emailRef.current?.value ?? "";
+    const phone = phoneRef.current?.value ?? "";
+    if (!name.trim()) e.name = "Name is required";
+    if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = "Valid email is required";
+    if (!phone.trim() || !/^\d{10}$/.test(phone)) e.phone = "Valid 10-digit phone is required";
+    if (!courseId) e.courseId = "Please select a course";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -39,11 +45,11 @@ export default function EnquiryForm() {
     const id = "e" + Date.now();
     const enquiry = {
       id,
-      studentName: form.name.trim(),
-      email: form.email.trim(),
-      phone: form.phone.trim(),
-      courseId: form.courseId,
-      message: form.message.trim(),
+      studentName: (nameRef.current?.value ?? "").trim(),
+      email: (emailRef.current?.value ?? "").trim(),
+      phone: (phoneRef.current?.value ?? "").trim(),
+      courseId,
+      message: (messageRef.current?.value ?? "").trim(),
       status: "new" as const,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -112,16 +118,16 @@ export default function EnquiryForm() {
                 className="bg-card rounded-xl p-8 shadow-card border border-border/50 space-y-5"
               >
                 <Field label="Full Name" name="name" error={errors.name}>
-                  <Input id="name" placeholder="Your full name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+                  <Input id="name" placeholder="Your full name" ref={nameRef} defaultValue={""} />
                 </Field>
                 <Field label="Email" name="email" error={errors.email}>
-                  <Input id="email" type="email" placeholder="you@example.com" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
+                  <Input id="email" type="email" placeholder="you@example.com" ref={emailRef} defaultValue={""} />
                 </Field>
                 <Field label="Phone" name="phone" error={errors.phone}>
-                  <Input id="phone" placeholder="10-digit phone number" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} />
+                  <Input id="phone" placeholder="10-digit phone number" ref={phoneRef} defaultValue={""} />
                 </Field>
                 <Field label="Course Interested" name="courseId" error={errors.courseId}>
-                  <Select value={form.courseId} onValueChange={v => setForm(f => ({ ...f, courseId: v }))}>
+                  <Select value={courseId} onValueChange={v => setCourseId(v)}>
                     <SelectTrigger><SelectValue placeholder="Select a course" /></SelectTrigger>
                     <SelectContent>
                       {COURSES.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
@@ -129,7 +135,7 @@ export default function EnquiryForm() {
                   </Select>
                 </Field>
                 <Field label="Message (optional)" name="message">
-                  <Textarea id="message" placeholder="Any specific questions..." rows={3} value={form.message} onChange={e => setForm(f => ({ ...f, message: e.target.value }))} />
+                  <Textarea id="message" placeholder="Any specific questions..." rows={3} ref={messageRef} defaultValue={""} />
                 </Field>
                 <Button type="submit" disabled={submitting} className="w-full gradient-primary text-primary-foreground font-semibold" size="lg">
                   {submitting ? 'Submitting...' : 'Submit Enquiry'} <Send className="ml-2 h-4 w-4" />

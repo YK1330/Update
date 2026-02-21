@@ -35,6 +35,10 @@ const MOCK_NOTIFICATIONS = [
 
 const prisma = new PrismaClient();
 
+function generateNoteId(): string {
+  return `n${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
+
 async function main() {
   console.log("Seeding database...");
   await prisma.notification.deleteMany();
@@ -72,7 +76,7 @@ async function main() {
       },
     });
     for (const n of notes) {
-      await prisma.enquiryNote.create({ data: { ...n, enquiryId: e.id, createdAt: new Date(n.createdAt) } });
+      await prisma.enquiryNote.create({ data: { id: n.id || generateNoteId(), text: n.text, author: n.author, enquiryId: e.id, createdAt: new Date(n.createdAt) } });
     }
   }
 

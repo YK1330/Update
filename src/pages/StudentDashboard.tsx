@@ -88,7 +88,11 @@ export default function StudentDashboard() {
             ) : notifications.map(n => (
               <div
                 key={n.id}
-                onClick={() => { markNotificationRead(n.id); setNotifications(getNotifications(user.id)); }}
+                onClick={() => { 
+                  markNotificationRead(n.id);
+                  // Refresh notifications after marking as read
+                  setTimeout(() => setNotifications(getNotifications(user.id)), 100);
+                }}
                 className={`bg-card rounded-xl p-4 shadow-card border cursor-pointer transition-colors ${n.read ? "border-border/50" : "border-primary/30 bg-primary/5"}`}
               >
                 <div className="flex justify-between">

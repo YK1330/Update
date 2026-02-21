@@ -5,9 +5,15 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 const app = express();
 
-// Allow Vite dev server origin(s) during local development so browser fetches succeed.
-const allowedOrigins = ["http://localhost:8081", "http://localhost:5173"];
-app.use(cors({ origin: allowedOrigins }));
+// Allow requests from development and production origins
+const isDev = process.env.NODE_ENV !== 'production';
+const corsOptions = isDev 
+  ? { origin: true } // Allow all origins in development
+  : { 
+      origin: (process.env.ALLOWED_ORIGINS || 'http://localhost:5173,http://localhost:8081').split(','),
+      credentials: true
+    };
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // --- Health
@@ -140,17 +146,45 @@ app.put("/api/enquiries/:id", async (req, res) => {
   }
 });
 
-// Notes (create a note attached to inquiry)
+app.delete("/api/enquiries/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    // remove any notes for the enquiry first to avoid relational constraints
+    await prisma.enquiryNote.deleteMany({ where: { enquiryId: id } });
+    await prisma.enquiry.delete({ where: { id } });
+    res.status(204).end();
+  } catch (err: any) {
+    console.error(err);
+    res.status(400).json({ error: 'Failed to delete enquiry', details: String(err) });
+  }
+});
+
 app.post("/api/enquiries/:id/notes", async (req, res) => {
-  const note = await prisma.enquiryNote.create({ data: { ...req.body, enquiryId: req.params.id } });
-  res.status(201).json(note);
+  try {
+    // Generate unique note ID with timestamp and random component
+    const id = req.body.id || `n${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const note = await prisma.enquiryNote.create({ 
+      data: { 
+        id,
+        text: req.body.text,
+        author: req.body.author || 'system',
+        enquiryId: req.params.id,
+        createdAt: req.body.createdAt ? new Date(req.body.createdAt) : new Date()
+      } 
+    });
+    res.status(201).json(note);
+  } catch (err: any) {
+    console.error(err);
+    res.status(400).json({ error: 'Failed to create note', details: String(err) });
+  }
 });
 
 // --- Notifications
 app.get("/api/notifications", async (req, res) => {
   const { userId } = req.query;
-  const where = userId ? { where: { userId: String(userId) } } : {} as any;
-  const notifs = await prisma.notification.findMany(where);
+  const notifs = userId 
+    ? await prisma.notification.findMany({ where: { userId: String(userId) } })
+    : await prisma.notification.findMany();
   res.json(notifs);
 });
 

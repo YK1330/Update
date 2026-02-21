@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { getEnquiries, updateEnquiry, getCounselors, getUserById, COURSES, STATUS_COLORS, STATUS_LABELS, type Enquiry, type EnquiryStatus } from "@/lib/data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,9 +12,16 @@ import { useToast } from "@/hooks/use-toast";
 const STATUSES: EnquiryStatus[] = ["new", "contacted", "follow-up", "converted", "rejected"];
 const PER_PAGE = 6;
 
+// Generate unique note ID
+function generateNoteId(): string {
+  return `n${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
+
 export default function EnquiryManagement() {
   const [enquiries, setEnquiries] = useState(getEnquiries);
   const [search, setSearch] = useState("");
+  // separate controlled input to debounce updates to `search` used for filtering
+  const [searchInput, setSearchInput] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Enquiry | null>(null);
@@ -32,42 +39,63 @@ export default function EnquiryManagement() {
     return result;
   }, [enquiries, filterStatus, search]);
 
+  // Debounce search input to avoid expensive re-filtering on every keystroke
+  useEffect(() => {
+    const t = setTimeout(() => setSearch(searchInput.trim()), 200);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
   const totalPages = Math.ceil(filtered.length / PER_PAGE);
   const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
   const refresh = () => setEnquiries([...getEnquiries()]);
 
-  const handleStatusChange = (id: string, status: EnquiryStatus) => {
-    updateEnquiry(id, { status });
-    refresh();
-    toast({ title: "Status Updated" });
+  const handleStatusChange = async (id: string, status: EnquiryStatus) => {
+    try {
+      await updateEnquiry(id, { status });
+      refresh();
+      toast({ title: "Status Updated" });
+    } catch (err) {
+      console.error(err);
+      toast({ title: "Update failed", description: "Could not update status", variant: "destructive" });
+    }
   };
 
-  const handleAssign = (id: string, counselorId: string) => {
-    updateEnquiry(id, { assignedTo: counselorId });
-    refresh();
-    toast({ title: "Counselor Assigned" });
+  const handleAssign = async (id: string, counselorId: string) => {
+    try {
+      await updateEnquiry(id, { assignedTo: counselorId });
+      refresh();
+      toast({ title: "Counselor Assigned" });
+    } catch (err) {
+      console.error(err);
+      toast({ title: "Assign failed", description: "Could not assign counselor", variant: "destructive" });
+    }
   };
 
-  const handleAddNote = () => {
+  const handleAddNote = async () => {
     if (!selected || !noteText.trim()) return;
     const enq = getEnquiries().find(e => e.id === selected.id);
     if (!enq) return;
-    const newNote = { id: "n" + Date.now(), text: noteText.trim(), author: "Admin", createdAt: new Date().toISOString() };
-    updateEnquiry(selected.id, { notes: [...enq.notes, newNote] });
-    setNoteText("");
-    refresh();
-    setSelected({ ...enq, notes: [...enq.notes, newNote] });
-    toast({ title: "Note Added" });
+    const newNote = { id: generateNoteId(), text: noteText.trim(), author: "Admin", createdAt: new Date().toISOString() };
+    try {
+      const saved = await updateEnquiry(selected.id, { notes: [...enq.notes, newNote] });
+      setNoteText("");
+      refresh();
+      setSelected(saved);
+      toast({ title: "Note Added" });
+    } catch (err) {
+      console.error(err);
+      toast({ title: "Add note failed", description: "Could not add note", variant: "destructive" });
+    }
   };
 
   return (
     <div className="space-y-6">
       {/* Controls */}
       <div className="flex flex-wrap gap-3 items-center">
-        <div className="relative flex-1 min-w-[200px]">
+          <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search by name or email..." className="pl-9" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
+          <Input placeholder="Search by name or email..." className="pl-9" value={searchInput} onChange={e => { setSearchInput(e.target.value); setPage(1); }} />
         </div>
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-muted-foreground" />

@@ -132,23 +132,28 @@ let usersCache: User[] | null = null;
 let enquiriesCache: Enquiry[] | null = null;
 let notificationsCache: Notification[] | null = null;
 let currentUserCache: User | null = null;
+let initPromise: Promise<void> | null = null;
 
 export function initDB() {
-  // Load data from local server (fire-and-forget). Fall back to mock data when server is unavailable.
-  fetch("http://localhost:4000/api/users")
-    .then((r) => r.json())
-    .then((data) => { usersCache = data; })
-    .catch(() => { usersCache = MOCK_USERS; });
-
-  fetch("http://localhost:4000/api/enquiries")
-    .then((r) => r.json())
-    .then((data) => { enquiriesCache = data; })
-    .catch(() => { enquiriesCache = MOCK_ENQUIRIES; });
-
-  fetch("http://localhost:4000/api/notifications")
-    .then((r) => r.json())
-    .then((data) => { notificationsCache = data; })
-    .catch(() => { notificationsCache = MOCK_NOTIFICATIONS; });
+  if (initPromise) return initPromise;
+  
+  // Load data from local server with proper error handling and synchronization
+  initPromise = Promise.all([
+    fetch("http://localhost:4000/api/users")
+      .then((r) => r.json())
+      .then((data) => { usersCache = data; })
+      .catch(() => { usersCache = MOCK_USERS; }),
+    fetch("http://localhost:4000/api/enquiries")
+      .then((r) => r.json())
+      .then((data) => { enquiriesCache = data; })
+      .catch(() => { enquiriesCache = MOCK_ENQUIRIES; }),
+    fetch("http://localhost:4000/api/notifications")
+      .then((r) => r.json())
+      .then((data) => { notificationsCache = data; })
+      .catch(() => { notificationsCache = MOCK_NOTIFICATIONS; }),
+  ]).then(() => {});
+  
+  return initPromise;
 }
 
 // Users
@@ -215,12 +220,23 @@ export function getCurrentUser(): User | null { return currentUserCache; }
 // Enquiries
 export function getEnquiries(): Enquiry[] { return enquiriesCache ?? MOCK_ENQUIRIES; }
 export function getEnquiryById(id: string) { return getEnquiries().find(e => e.id === id); }
+
+// Generate unique note ID
+function generateNoteId(): string {
+  return `n${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
+
 export async function addEnquiry(enquiry: Enquiry): Promise<Enquiry> {
   const prev = getEnquiries();
-  enquiriesCache = [...prev, enquiry];
+  const newEnquiry = { ...enquiry };
+  // Ensure notes have unique IDs
+  if (newEnquiry.notes && newEnquiry.notes.length > 0) {
+    newEnquiry.notes = newEnquiry.notes.map(n => ({ ...n, id: n.id || generateNoteId() }));
+  }
+  enquiriesCache = [...prev, newEnquiry];
 
   try {
-    const res = await fetch("http://localhost:4000/api/enquiries", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(enquiry) });
+    const res = await fetch("http://localhost:4000/api/enquiries", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(newEnquiry) });
     if (!res.ok) {
       enquiriesCache = prev;
       const txt = await res.text().catch(() => res.statusText);
@@ -235,21 +251,53 @@ export async function addEnquiry(enquiry: Enquiry): Promise<Enquiry> {
     throw err;
   }
 }
-export function updateEnquiry(id: string, data: Partial<Enquiry>) {
+export async function updateEnquiry(id: string, data: Partial<Enquiry>): Promise<Enquiry> {
   const prev = getEnquiries();
-  enquiriesCache = getEnquiries().map(e => e.id === id ? { ...e, ...data, updatedAt: new Date().toISOString() } : e);
+  // Ensure notes have unique IDs before sending to server
+  const updateData = { ...data };
+  if (updateData.notes && updateData.notes.length > 0) {
+    updateData.notes = updateData.notes.map(n => ({
+      ...n,
+      id: n.id || generateNoteId()
+    }));
+  }
+  
+  // optimistic local update (kept small) — will be reverted on failure
+  enquiriesCache = getEnquiries().map(e => e.id === id ? { ...e, ...updateData, updatedAt: new Date().toISOString() } : e);
 
-  fetch(`http://localhost:4000/api/enquiries/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) })
-    .then(async (res) => {
-      if (!res.ok) {
-        enquiriesCache = prev;
-        const txt = await res.text().catch(() => res.statusText);
-        throw new Error(txt || 'Failed to update enquiry');
-      }
-      const saved = await res.json();
-      enquiriesCache = getEnquiries().map(e => (e.id === saved.id ? saved : e));
-    })
-    .catch((err) => { enquiriesCache = prev; console.error('updateEnquiry failed:', err); });
+  try {
+    const res = await fetch(`http://localhost:4000/api/enquiries/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(updateData) });
+    if (!res.ok) {
+      enquiriesCache = prev;
+      const txt = await res.text().catch(() => res.statusText);
+      throw new Error(txt || 'Failed to update enquiry');
+    }
+    const saved: Enquiry = await res.json();
+    enquiriesCache = getEnquiries().map(e => (e.id === saved.id ? saved : e));
+    return saved;
+  } catch (err) {
+    enquiriesCache = prev;
+    console.error('updateEnquiry failed:', err);
+    throw err;
+  }
+}
+
+export async function deleteEnquiry(id: string): Promise<void> {
+  const prev = getEnquiries();
+  enquiriesCache = prev.filter(e => e.id !== id);
+
+  try {
+    const res = await fetch(`http://localhost:4000/api/enquiries/${id}`, { method: "DELETE" });
+    if (!res.ok && res.status !== 204) {
+      enquiriesCache = prev;
+      const txt = await res.text().catch(() => res.statusText);
+      throw new Error(txt || 'Failed to delete enquiry');
+    }
+  } catch (err) {
+    enquiriesCache = prev;
+    console.error('deleteEnquiry failed:', err);
+    throw err;
+  }
 }
 export function getEnquiriesByEmail(email: string): Enquiry[] {
   return getEnquiries().filter(e => e.email.toLowerCase() === email.toLowerCase());
