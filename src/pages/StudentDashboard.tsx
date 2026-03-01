@@ -47,9 +47,8 @@ export default function StudentDashboard() {
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
-              className={`px-4 py-2 rounded-md text-sm font-medium flex items-center gap-1.5 transition-colors ${
-                tab === t.key ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
-              }`}
+              className={`px-4 py-2 rounded-md text-sm font-medium flex items-center gap-1.5 transition-colors ${tab === t.key ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+                }`}
             >
               <t.icon className="h-4 w-4" />{t.label}
             </button>
@@ -88,7 +87,7 @@ export default function StudentDashboard() {
             ) : notifications.map(n => (
               <div
                 key={n.id}
-                onClick={() => { 
+                onClick={() => {
                   markNotificationRead(n.id);
                   // Refresh notifications after marking as read
                   setTimeout(() => setNotifications(getNotifications(user.id)), 100);
