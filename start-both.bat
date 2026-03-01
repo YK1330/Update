@@ -17,13 +17,13 @@ echo.
 timeout /t 2
 
 REM Start server in a new window
-start cmd /k "cd /d C:\Users\WELCOME\priya\collegeProject\collegeProject\server && npm install && npm run dev"
+start cmd /k "cd /d .\server && npm install && npm run dev"
 
 REM Wait a moment before starting client
 timeout /t 3
 
 REM Start client in a new window
-start cmd /k "cd /d C:\Users\WELCOME\priya\collegeProject\collegeProject && npm install && npm run dev"
+start cmd /k "npm install && npm run dev"
 
 echo.
 echo Server and Client windows have been opened!

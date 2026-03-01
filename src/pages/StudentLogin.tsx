@@ -47,14 +47,12 @@ export default function StudentLogin() {
           <Button type="submit" className="w-full gradient-primary text-primary-foreground font-semibold">
             <LogIn className="h-4 w-4 mr-2" /> Sign In
           </Button>
-          <p className="text-xs text-center text-muted-foreground">
-            Demo: ankit@student.com / student123
-          </p>
         </form>
 
-        <p className="text-center text-sm text-muted-foreground mt-4">
-          <Link to="/admin/login" className="text-primary hover:underline">Admin Login →</Link>
-        </p>
+        <div className="flex flex-col gap-2 mt-4 text-center text-sm text-muted-foreground">
+          <p>Don't have an account? <Link to="/student/register" className="text-primary hover:underline">Register here</Link></p>
+          <p><Link to="/admin/login" className="text-primary hover:underline">Admin Login →</Link></p>
+        </div>
       </motion.div>
     </div>
   );

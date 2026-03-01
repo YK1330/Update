@@ -136,7 +136,7 @@ let initPromise: Promise<void> | null = null;
 
 export function initDB() {
   if (initPromise) return initPromise;
-  
+
   // Load data from local server with proper error handling and synchronization
   initPromise = Promise.all([
     fetch("http://localhost:4000/api/users")
@@ -151,8 +151,8 @@ export function initDB() {
       .then((r) => r.json())
       .then((data) => { notificationsCache = data; })
       .catch(() => { notificationsCache = MOCK_NOTIFICATIONS; }),
-  ]).then(() => {});
-  
+  ]).then(() => { });
+
   return initPromise;
 }
 
@@ -211,11 +211,33 @@ export function login(email: string, password: string): User | null {
   const user = getUsers().find(u => u.email === email && u.password === password);
   if (user) currentUserCache = user;
   // optional: validate against server in background (non-blocking)
-  fetch("http://localhost:4000/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password }) }).catch(() => {});
+  fetch("http://localhost:4000/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password }) }).catch(() => { });
   return user || null;
 }
 export function logout() { currentUserCache = null; }
 export function getCurrentUser(): User | null { return currentUserCache; }
+
+export async function registerStudent(userData: Omit<User, 'id'>): Promise<User> {
+  const newUser = { ...userData, id: `u${Date.now()}` } as User;
+  const prev = getUsers();
+  usersCache = [...prev, newUser];
+
+  try {
+    const res = await fetch("http://localhost:4000/api/users", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(newUser) });
+    if (!res.ok) {
+      usersCache = prev;
+      const data = await res.json().catch(() => null);
+      throw new Error((data && data.error) || 'Failed to register student');
+    }
+    const saved = await res.json();
+    usersCache = getUsers().map(u => (u.id === newUser.id ? saved : u));
+    return saved;
+  } catch (err) {
+    usersCache = prev;
+    console.error('registerStudent failed:', err);
+    throw err;
+  }
+}
 
 // Enquiries
 export function getEnquiries(): Enquiry[] { return enquiriesCache ?? MOCK_ENQUIRIES; }
@@ -261,7 +283,7 @@ export async function updateEnquiry(id: string, data: Partial<Enquiry>): Promise
       id: n.id || generateNoteId()
     }));
   }
-  
+
   // optimistic local update (kept small) — will be reverted on failure
   enquiriesCache = getEnquiries().map(e => e.id === id ? { ...e, ...updateData, updatedAt: new Date().toISOString() } : e);
 
@@ -299,6 +321,39 @@ export async function deleteEnquiry(id: string): Promise<void> {
     throw err;
   }
 }
+
+export async function addEnquiryNote(enquiryId: string, noteData: Omit<EnquiryNote, "id">): Promise<EnquiryNote> {
+  const newNote = { ...noteData, id: generateNoteId() };
+
+  // Optimistic update
+  const prev = getEnquiries();
+  enquiriesCache = getEnquiries().map(e => {
+    if (e.id === enquiryId) {
+      return { ...e, notes: [...e.notes, newNote] };
+    }
+    return e;
+  });
+
+  try {
+    const res = await fetch(`http://localhost:4000/api/enquiries/${enquiryId}/notes`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newNote),
+    });
+    if (!res.ok) {
+      enquiriesCache = prev;
+      const txt = await res.text().catch(() => res.statusText);
+      throw new Error(txt || 'Failed to sync note to server');
+    }
+    const savedNote = await res.json();
+    return savedNote;
+  } catch (err) {
+    enquiriesCache = prev;
+    console.error('addEnquiryNote failed:', err);
+    throw err;
+  }
+}
+
 export function getEnquiriesByEmail(email: string): Enquiry[] {
   return getEnquiries().filter(e => e.email.toLowerCase() === email.toLowerCase());
 }

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { getEnquiries, updateEnquiry, getCounselors, getUserById, COURSES, STATUS_COLORS, STATUS_LABELS, type Enquiry, type EnquiryStatus } from "@/lib/data";
+import { getEnquiries, updateEnquiry, addEnquiryNote, getCounselors, getUserById, COURSES, STATUS_COLORS, STATUS_LABELS, type Enquiry, type EnquiryStatus } from "@/lib/data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -50,9 +50,25 @@ export default function EnquiryManagement() {
 
   const refresh = () => setEnquiries([...getEnquiries()]);
 
-  const handleStatusChange = async (id: string, status: EnquiryStatus) => {
+  const [statusDialog, setStatusDialog] = useState<{ id: string, status: EnquiryStatus } | null>(null);
+  const [statusComment, setStatusComment] = useState("");
+
+  const handleStatusChange = (id: string, status: EnquiryStatus) => {
+    setStatusDialog({ id, status });
+  };
+
+  const confirmStatusChange = async () => {
+    if (!statusDialog) return;
     try {
-      await updateEnquiry(id, { status });
+      await updateEnquiry(statusDialog.id, { status: statusDialog.status });
+      const noteText = statusComment.trim()
+        ? `Status updated to ${STATUS_LABELS[statusDialog.status]}: ${statusComment.trim()}`
+        : `Status updated to ${STATUS_LABELS[statusDialog.status]}`;
+
+      await addEnquiryNote(statusDialog.id, { text: noteText, author: "Admin", createdAt: new Date().toISOString() });
+
+      setStatusDialog(null);
+      setStatusComment("");
       refresh();
       toast({ title: "Status Updated" });
     } catch (err) {
@@ -76,12 +92,12 @@ export default function EnquiryManagement() {
     if (!selected || !noteText.trim()) return;
     const enq = getEnquiries().find(e => e.id === selected.id);
     if (!enq) return;
-    const newNote = { id: generateNoteId(), text: noteText.trim(), author: "Admin", createdAt: new Date().toISOString() };
+    const newNote = { text: noteText.trim(), author: "Admin", createdAt: new Date().toISOString() };
     try {
-      const saved = await updateEnquiry(selected.id, { notes: [...enq.notes, newNote] });
+      await addEnquiryNote(selected.id, newNote);
       setNoteText("");
       refresh();
-      setSelected(saved);
+      setSelected(getEnquiries().find(e => e.id === selected.id) || null);
       toast({ title: "Note Added" });
     } catch (err) {
       console.error(err);
@@ -93,7 +109,7 @@ export default function EnquiryManagement() {
     <div className="space-y-6">
       {/* Controls */}
       <div className="flex flex-wrap gap-3 items-center">
-          <div className="relative flex-1 min-w-[200px]">
+        <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Search by name or email..." className="pl-9" value={searchInput} onChange={e => { setSearchInput(e.target.value); setPage(1); }} />
         </div>
@@ -201,6 +217,30 @@ export default function EnquiryManagement() {
           <div className="flex gap-2">
             <Textarea placeholder="Add a note..." value={noteText} onChange={e => setNoteText(e.target.value)} rows={2} className="flex-1" />
             <Button onClick={handleAddNote} size="sm" className="self-end gradient-primary text-primary-foreground">Add</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      {/* Status Dialog */}
+      <Dialog open={!!statusDialog} onOpenChange={open => !open && setStatusDialog(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Update Status</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Please provide a comment for this status change (optional).
+            </p>
+            <Textarea
+              placeholder="Add a comment..."
+              value={statusComment}
+              onChange={e => setStatusComment(e.target.value)}
+              rows={3}
+              className="w-full"
+            />
+            <div className="flex justify-end gap-2 mt-4">
+              <Button variant="outline" onClick={() => setStatusDialog(null)}>Cancel</Button>
+              <Button onClick={confirmStatusChange} className="gradient-primary text-primary-foreground">Update Status</Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

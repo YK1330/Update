@@ -95,6 +95,24 @@ export default function TrackApplication() {
                               <XCircle className="h-4 w-4" /> Application was not accepted.
                             </div>
                           )}
+
+                          {/* Admin Comments */}
+                          {enq.notes && enq.notes.length > 0 && (
+                            <div className="mt-6 pt-4 border-t border-border/50">
+                              <h4 className="text-sm font-semibold mb-3 text-foreground">Admin Updates & Comments</h4>
+                              <div className="space-y-3">
+                                {enq.notes.map(note => (
+                                  <div key={note.id} className="bg-muted rounded-lg p-3 text-sm">
+                                    <p className="text-foreground">{note.text}</p>
+                                    <div className="flex justify-between mt-1 text-xs text-muted-foreground">
+                                      <span>{note.author}</span>
+                                      <span>{new Date(note.createdAt).toLocaleString()}</span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       );
                     })}

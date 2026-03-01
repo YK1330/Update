@@ -16,6 +16,7 @@ import CourseDetail from "./pages/CourseDetail";
 import EnquiryForm from "./pages/EnquiryForm";
 import TrackApplication from "./pages/TrackApplication";
 import StudentLogin from "./pages/StudentLogin";
+import StudentRegister from "./pages/StudentRegister";
 import StudentDashboard from "./pages/StudentDashboard";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -45,6 +46,7 @@ const App = () => {
               <Route path="/enquiry" element={<EnquiryForm />} />
               <Route path="/track" element={<TrackApplication />} />
               <Route path="/student/login" element={<StudentLogin />} />
+              <Route path="/student/register" element={<StudentRegister />} />
               <Route path="/student/dashboard" element={<StudentDashboard />} />
             </Route>
 
