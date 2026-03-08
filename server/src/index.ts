@@ -7,12 +7,12 @@ const app = express();
 
 // Allow requests from development and production origins
 const isDev = process.env.NODE_ENV !== 'production';
-const corsOptions = isDev 
+const corsOptions = isDev
   ? { origin: true } // Allow all origins in development
-  : { 
-      origin: (process.env.ALLOWED_ORIGINS || 'http://localhost:5173,http://localhost:8081').split(','),
-      credentials: true
-    };
+  : {
+    origin: (process.env.ALLOWED_ORIGINS || 'http://localhost:5173,http://localhost:8081').split(','),
+    credentials: true
+  };
 app.use(cors(corsOptions));
 app.use(express.json());
 
@@ -77,7 +77,55 @@ app.post("/api/auth/login", async (req, res) => {
 // --- Courses
 app.get("/api/courses", async (_req, res) => {
   const courses = await prisma.course.findMany();
-  res.json(courses);
+  res.json(courses.map(c => ({ ...c, syllabus: typeof c.syllabus === 'string' ? JSON.parse(c.syllabus) : c.syllabus })));
+});
+
+app.get("/api/courses/:id", async (req, res) => {
+  const course = await prisma.course.findUnique({ where: { id: req.params.id } });
+  if (!course) return res.status(404).json({ error: "Course not found" });
+  res.json({ ...course, syllabus: typeof course.syllabus === 'string' ? JSON.parse(course.syllabus) : course.syllabus });
+});
+
+app.post("/api/courses", async (req, res) => {
+  try {
+    const data = { ...req.body };
+    if (Array.isArray(data.syllabus)) {
+      data.syllabus = JSON.stringify(data.syllabus);
+    }
+    const c = await prisma.course.create({ data });
+    // Parse it back for the client
+    res.status(201).json({ ...c, syllabus: JSON.parse(c.syllabus as string) });
+  } catch (err: any) {
+    console.error(err);
+    res.status(400).json({ error: 'Failed to create course', details: String(err) });
+  }
+});
+
+app.put("/api/courses/:id", async (req, res) => {
+  try {
+    const data = { ...req.body };
+    if (Array.isArray(data.syllabus)) {
+      data.syllabus = JSON.stringify(data.syllabus);
+    }
+    const c = await prisma.course.update({ where: { id: req.params.id }, data });
+    res.json({ ...c, syllabus: typeof c.syllabus === 'string' ? JSON.parse(c.syllabus as string) : c.syllabus });
+  } catch (err: any) {
+    console.error(err);
+    res.status(400).json({ error: 'Failed to update course', details: String(err) });
+  }
+});
+
+app.delete("/api/courses/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    await prisma.enquiryNote.deleteMany({ where: { enquiry: { courseId: id } } });
+    await prisma.enquiry.deleteMany({ where: { courseId: id } });
+    await prisma.course.delete({ where: { id } });
+    res.status(204).end();
+  } catch (err: any) {
+    console.error(err);
+    res.status(400).json({ error: 'Failed to delete course', details: String(err) });
+  }
 });
 
 // --- Enquiries
@@ -163,14 +211,14 @@ app.post("/api/enquiries/:id/notes", async (req, res) => {
   try {
     // Generate unique note ID with timestamp and random component
     const id = req.body.id || `n${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const note = await prisma.enquiryNote.create({ 
-      data: { 
+    const note = await prisma.enquiryNote.create({
+      data: {
         id,
         text: req.body.text,
         author: req.body.author || 'system',
         enquiryId: req.params.id,
         createdAt: req.body.createdAt ? new Date(req.body.createdAt) : new Date()
-      } 
+      }
     });
     res.status(201).json(note);
   } catch (err: any) {
@@ -182,7 +230,7 @@ app.post("/api/enquiries/:id/notes", async (req, res) => {
 // --- Notifications
 app.get("/api/notifications", async (req, res) => {
   const { userId } = req.query;
-  const notifs = userId 
+  const notifs = userId
     ? await prisma.notification.findMany({ where: { userId: String(userId) } })
     : await prisma.notification.findMany();
   res.json(notifs);

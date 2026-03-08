@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getCurrentUser, getEnquiriesByEmail, getNotifications, markNotificationRead, COURSES, STATUS_COLORS, STATUS_LABELS, type Enquiry, type Notification } from "@/lib/data";
+import { getCurrentUser, getEnquiriesByEmail, getNotifications, markNotificationRead, getCourses, STATUS_COLORS, STATUS_LABELS, type Enquiry, type Notification } from "@/lib/data";
 import { Button } from "@/components/ui/button";
 import { Bell, User, FileText, LogOut } from "lucide-react";
 import { logout } from "@/lib/data";
@@ -61,7 +61,7 @@ export default function StudentDashboard() {
             {enquiries.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">No enquiries found.</div>
             ) : enquiries.map(enq => {
-              const course = COURSES.find(c => c.id === enq.courseId);
+              const course = getCourses().find(c => c.id === enq.courseId);
               return (
                 <motion.div key={enq.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-card rounded-xl p-5 shadow-card border border-border/50">
                   <div className="flex justify-between items-start">

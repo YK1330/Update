@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
-import { COURSES, addEnquiry } from "@/lib/data";
+import { getCourses, addEnquiry } from "@/lib/data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -130,7 +130,7 @@ export default function EnquiryForm() {
                   <Select value={courseId} onValueChange={v => setCourseId(v)}>
                     <SelectTrigger><SelectValue placeholder="Select a course" /></SelectTrigger>
                     <SelectContent>
-                      {COURSES.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                      {getCourses().map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </Field>

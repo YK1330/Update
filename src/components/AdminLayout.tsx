@@ -1,6 +1,6 @@
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
-  LayoutDashboard, MessageSquare, Users, BarChart3, LogOut, GraduationCap, ChevronLeft, ChevronRight,
+  LayoutDashboard, MessageSquare, Users, BarChart3, LogOut, GraduationCap, ChevronLeft, ChevronRight, BookOpen
 } from "lucide-react";
 import { useState } from "react";
 import { getCurrentUser, logout } from "@/lib/data";
@@ -10,6 +10,7 @@ import { motion } from "framer-motion";
 const ADMIN_LINKS = [
   { label: "Dashboard", path: "/admin/dashboard", icon: LayoutDashboard },
   { label: "Enquiries", path: "/admin/enquiries", icon: MessageSquare },
+  { label: "Courses", path: "/admin/courses", icon: BookOpen },
   { label: "Counselors", path: "/admin/counselors", icon: Users },
   { label: "Reports", path: "/admin/reports", icon: BarChart3 },
 ];
@@ -54,11 +55,10 @@ export default function AdminLayout() {
               <Link
                 key={l.path}
                 to={l.path}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  active
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${active
                     ? "bg-sidebar-accent text-sidebar-primary-foreground"
                     : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-                }`}
+                  }`}
               >
                 <l.icon className="h-5 w-5 flex-shrink-0" />
                 {!collapsed && <span>{l.label}</span>}

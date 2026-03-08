@@ -1,5 +1,5 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { COURSES } from "@/lib/data";
+import { getCourses } from "@/lib/data";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Clock, IndianRupee, GraduationCap, CheckCircle2 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 export default function CourseDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const course = COURSES.find(c => c.id === id);
+  const course = getCourses().find(c => c.id === id);
 
   if (!course) return (
     <div className="container py-20 text-center">

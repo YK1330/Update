@@ -22,6 +22,7 @@ import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import EnquiryManagement from "./pages/EnquiryManagement";
 import CounselorManagement from "./pages/CounselorManagement";
+import AdminCourses from "./pages/AdminCourses";
 import Reports from "./pages/Reports";
 import NotFound from "./pages/NotFound";
 
@@ -57,6 +58,7 @@ const App = () => {
             <Route element={<AdminLayout />}>
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/admin/enquiries" element={<EnquiryManagement />} />
+              <Route path="/admin/courses" element={<AdminCourses />} />
               <Route path="/admin/counselors" element={<CounselorManagement />} />
               <Route path="/admin/reports" element={<Reports />} />
             </Route>

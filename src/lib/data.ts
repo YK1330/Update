@@ -102,7 +102,7 @@ export const COURSES: Course[] = [
   },
 ];
 
-export const DEPARTMENTS = [...new Set(COURSES.map(c => c.department))];
+// DEPARTMENTS function exported below
 
 export const MOCK_USERS: User[] = [
   { id: "u1", name: "Admin User", email: "admin@college.edu", phone: "9999900000", role: "admin", password: "admin123" },
@@ -129,6 +129,7 @@ export const MOCK_NOTIFICATIONS: Notification[] = [
 
 // ─── Server-backed in-memory store (no browser storage) ─────────────
 let usersCache: User[] | null = null;
+let coursesCache: Course[] | null = null;
 let enquiriesCache: Enquiry[] | null = null;
 let notificationsCache: Notification[] | null = null;
 let currentUserCache: User | null = null;
@@ -143,6 +144,10 @@ export function initDB() {
       .then((r) => r.json())
       .then((data) => { usersCache = data; })
       .catch(() => { usersCache = MOCK_USERS; }),
+    fetch("http://localhost:4000/api/courses")
+      .then((r) => r.json())
+      .then((data) => { coursesCache = data; })
+      .catch(() => { coursesCache = COURSES; }),
     fetch("http://localhost:4000/api/enquiries")
       .then((r) => r.json())
       .then((data) => { enquiriesCache = data; })
@@ -154,6 +159,68 @@ export function initDB() {
   ]).then(() => { });
 
   return initPromise;
+}
+
+// Courses
+export function getCourses(): Course[] { return coursesCache ?? COURSES; }
+export function getDepartments(): string[] { return [...new Set(getCourses().map(c => c.department))]; }
+
+export async function addCourse(course: Course): Promise<Course> {
+  const prev = getCourses();
+  coursesCache = [...prev, course];
+
+  try {
+    const res = await fetch("http://localhost:4000/api/courses", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(course) });
+    if (!res.ok) {
+      coursesCache = prev;
+      throw new Error('Failed to create course');
+    }
+    const saved = await res.json();
+    coursesCache = getCourses().map(c => c.id === course.id ? saved : c);
+    return saved;
+  } catch (err) {
+    coursesCache = prev;
+    console.error('addCourse failed:', err);
+    throw err;
+  }
+}
+
+export async function updateCourse(id: string, data: Partial<Course>): Promise<Course> {
+  const prev = getCourses();
+  const updateData = { ...data };
+  coursesCache = getCourses().map(c => c.id === id ? { ...c, ...updateData } : c);
+
+  try {
+    const res = await fetch(`http://localhost:4000/api/courses/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(updateData) });
+    if (!res.ok) {
+      coursesCache = prev;
+      throw new Error('Failed to update course');
+    }
+    const saved = await res.json();
+    coursesCache = getCourses().map(c => c.id === saved.id ? saved : c);
+    return saved;
+  } catch (err) {
+    coursesCache = prev;
+    console.error('updateCourse failed:', err);
+    throw err;
+  }
+}
+
+export async function deleteCourse(id: string): Promise<void> {
+  const prev = getCourses();
+  coursesCache = prev.filter(c => c.id !== id);
+
+  try {
+    const res = await fetch(`http://localhost:4000/api/courses/${id}`, { method: "DELETE" });
+    if (!res.ok && res.status !== 204) {
+      coursesCache = prev;
+      throw new Error('Failed to delete course');
+    }
+  } catch (err) {
+    coursesCache = prev;
+    console.error('deleteCourse failed:', err);
+    throw err;
+  }
 }
 
 // Users

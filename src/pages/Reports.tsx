@@ -1,4 +1,4 @@
-import { getEnquiries, getStats, COURSES, STATUS_LABELS, type EnquiryStatus } from "@/lib/data";
+import { getEnquiries, getStats, getCourses, STATUS_LABELS, type EnquiryStatus } from "@/lib/data";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { motion } from "framer-motion";
@@ -20,7 +20,8 @@ export default function Reports() {
   });
 
   // Course breakdown
-  const courseBreakdown = COURSES.map(c => {
+  const courses = getCourses();
+  const courseBreakdown = courses.map(c => {
     const courseEnqs = enquiries.filter(e => e.courseId === c.id);
     return {
       course: c.name.substring(0, 18),
@@ -36,7 +37,7 @@ export default function Reports() {
       ["Name", "Email", "Phone", "Course", "Status", "Date"],
       ...enquiries.map(e => [
         e.studentName, e.email, e.phone,
-        COURSES.find(c => c.id === e.courseId)?.name || "",
+        courses.find(c => c.id === e.courseId)?.name || "",
         STATUS_LABELS[e.status],
         new Date(e.createdAt).toLocaleDateString(),
       ]),

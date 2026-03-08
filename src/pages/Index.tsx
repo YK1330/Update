@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { COURSES } from "@/lib/data";
+import { getCourses } from "@/lib/data";
 import { GraduationCap, Users, Award, BookOpen, ArrowRight, Star, Quote } from "lucide-react";
 import { motion } from "framer-motion";
 import heroImage from "@/assets/hero-college.jpg";
@@ -95,7 +95,7 @@ export default function Index() {
             <p className="text-muted-foreground max-w-lg mx-auto">Choose from our wide range of programs designed to launch your career.</p>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
-            {COURSES.slice(0, 3).map((course, i) => (
+            {getCourses().slice(0, 3).map((course, i) => (
               <motion.div
                 key={course.id}
                 custom={i}

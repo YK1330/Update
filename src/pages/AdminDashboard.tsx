@@ -1,4 +1,4 @@
-import { getStats, getEnquiries, COURSES } from "@/lib/data";
+import { getStats, getEnquiries, getCourses } from "@/lib/data";
 import { MessageSquare, UserCheck, Clock, XCircle, TrendingUp, PhoneCall } from "lucide-react";
 import { motion } from "framer-motion";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
@@ -27,7 +27,7 @@ export default function AdminDashboard() {
   });
 
   // Course distribution
-  const courseData = COURSES.map(c => ({
+  const courseData = getCourses().map(c => ({
     name: c.name.replace(/^(B\.Tech |B\.Sc |B\.Com |MBA|BBA)/, "$1").substring(0, 15),
     value: enquiries.filter(e => e.courseId === c.id).length,
   })).filter(d => d.value > 0);
@@ -96,15 +96,14 @@ export default function AdminDashboard() {
               {enquiries.slice(0, 5).map(e => (
                 <tr key={e.id} className="border-b border-border/50">
                   <td className="py-2.5 text-foreground">{e.studentName}</td>
-                  <td className="py-2.5 text-muted-foreground">{COURSES.find(c => c.id === e.courseId)?.name}</td>
+                  <td className="py-2.5 text-muted-foreground">{getCourses().find(c => c.id === e.courseId)?.name}</td>
                   <td className="py-2.5">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                      e.status === "new" ? "bg-info/10 text-info" :
-                      e.status === "contacted" ? "bg-primary/10 text-primary" :
-                      e.status === "follow-up" ? "bg-warning/10 text-warning" :
-                      e.status === "converted" ? "bg-success/10 text-success" :
-                      "bg-destructive/10 text-destructive"
-                    }`}>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${e.status === "new" ? "bg-info/10 text-info" :
+                        e.status === "contacted" ? "bg-primary/10 text-primary" :
+                          e.status === "follow-up" ? "bg-warning/10 text-warning" :
+                            e.status === "converted" ? "bg-success/10 text-success" :
+                              "bg-destructive/10 text-destructive"
+                      }`}>
                       {e.status}
                     </span>
                   </td>

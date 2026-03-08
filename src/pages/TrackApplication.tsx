@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { getEnquiriesByEmail, COURSES, STATUS_COLORS, STATUS_LABELS, type Enquiry } from "@/lib/data";
+import { getEnquiriesByEmail, getCourses, STATUS_COLORS, STATUS_LABELS, type Enquiry } from "@/lib/data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
@@ -54,7 +54,7 @@ export default function TrackApplication() {
                 ) : (
                   <div className="space-y-6">
                     {results.map(enq => {
-                      const course = COURSES.find(c => c.id === enq.courseId);
+                      const course = getCourses().find(c => c.id === enq.courseId);
                       const currentIdx = enq.status === "rejected" ? -1 : TIMELINE_ORDER.indexOf(enq.status);
 
                       return (

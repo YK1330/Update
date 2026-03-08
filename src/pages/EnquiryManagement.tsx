@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { getEnquiries, updateEnquiry, addEnquiryNote, getCounselors, getUserById, COURSES, STATUS_COLORS, STATUS_LABELS, type Enquiry, type EnquiryStatus } from "@/lib/data";
+import { getEnquiries, updateEnquiry, addEnquiryNote, getCounselors, getUserById, getCourses, STATUS_COLORS, STATUS_LABELS, type Enquiry, type EnquiryStatus } from "@/lib/data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -150,7 +150,7 @@ export default function EnquiryManagement() {
                         <div className="text-xs text-muted-foreground">{enq.email}</div>
                       </div>
                     </td>
-                    <td className="p-3 text-muted-foreground">{COURSES.find(c => c.id === enq.courseId)?.name}</td>
+                    <td className="p-3 text-muted-foreground">{getCourses().find(c => c.id === enq.courseId)?.name}</td>
                     <td className="p-3">
                       <Select value={enq.status} onValueChange={v => handleStatusChange(enq.id, v as EnquiryStatus)}>
                         <SelectTrigger className="h-7 text-xs w-[120px]">

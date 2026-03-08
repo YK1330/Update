@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { COURSES, DEPARTMENTS } from "@/lib/data";
+import { getCourses, getDepartments } from "@/lib/data";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Clock, IndianRupee, GraduationCap } from "lucide-react";
 import { motion } from "framer-motion";
@@ -12,7 +12,8 @@ const fadeUp = {
 
 export default function Courses() {
   const [dept, setDept] = useState("All");
-  const filtered = dept === "All" ? COURSES : COURSES.filter(c => c.department === dept);
+  const courses = getCourses();
+  const filtered = dept === "All" ? courses : courses.filter(c => c.department === dept);
 
   return (
     <div>
@@ -29,7 +30,7 @@ export default function Courses() {
         <div className="container">
           {/* Filter */}
           <div className="flex flex-wrap gap-2 mb-8">
-            {["All", ...DEPARTMENTS].map(d => (
+            {["All", ...getDepartments()].map(d => (
               <Button
                 key={d}
                 size="sm"
